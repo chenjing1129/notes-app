@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Tag, message, Select } from 'antd'; // 引入 Ant Design 组件
 import { updateNote, getNote } from '@/api/noteApi'; // 引入更新笔记和获取笔记的 API
 import { getCategories } from '@/api/categoryApi'; // 引入获取分类的 API
+import { getAllTags } from '@/api/tagApi'; // 引入获取所有标签的 API
 import { useStore } from '@/store/userStore'; // 引入全局状态管理
 import { useNavigate, useParams } from 'react-router-dom'; // 引入 React Router 的导航和路由参数钩子
 import Navar from '../components/Navbar'; // 引入导航栏组件
@@ -11,6 +12,8 @@ const EditNote = () => {
   const { noteId } = useParams(); // 从路由参数中获取笔记 ID
   const { user } = useStore(); // 从全局状态中获取用户信息
   const [tags, setTags] = useState([]); // 标签状态，用于存储笔记的标签
+  const [allTags, setAllTags] = useState([]); // 新增：存储所有从 API 获取的标签
+  const [initialTags, setInitialTags] = useState([]); // 新增：存储笔记的原始标签
   const [inputTag, setInputTag] = useState(''); // 输入框中的标签内容
   const [categories, setCategories] = useState([]); // 分类状态，用于存储从 API 获取的分类数据
   const [form] = Form.useForm(); // 使用 Ant Design 的 Form useForm 钩子管理表单
@@ -21,23 +24,30 @@ const EditNote = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 同时请求笔记数据和分类数据
-        const [noteResponse, categoriesResponse] = await Promise.all([
-          getNote(noteId), // 获取当前编辑的笔记
-          getCategories(), // 获取所有分类
-        ]);
+        const [noteResponse, categoriesResponse, tagsResponse] =
+          await Promise.all([getNote(noteId), getCategories(), getAllTags()]);
 
-        const fetchedNoteData = noteResponse.data; // 获取笔记数据
-        setNoteData(fetchedNoteData); // 更新笔记数据状态
-        setTags(fetchedNoteData.tags); // 设置笔记的标签
-        setCategories(categoriesResponse.data); // 设置分类数据
+        const fetchedNoteData = noteResponse.data;
+        setNoteData(fetchedNoteData);
+        const currentTags = fetchedNoteData.tags || [];
+        setTags(currentTags);
+        setInitialTags(currentTags); // 设置原始标签
+        setCategories(categoriesResponse.data);
+        setAllTags(
+          tagsResponse.data
+            ? tagsResponse.data.map((tag) => ({
+                label: tag.name,
+                value: tag.name,
+              }))
+            : tagsResponse.map((tag) => ({ label: tag.name, value: tag.name })),
+        );
       } catch (error) {
-        console.error('Failed to fetch data:', error); // 打印错误信息
-        message.error('获取数据失败'); // 使用 Ant Design 的 message 组件显示错误提示
+        console.error('Failed to fetch data:', error);
+        message.error('获取数据失败');
       }
     };
     fetchData();
-  }, [noteId]); // 依赖项为 noteId
+  }, [noteId]);
 
   useEffect(() => {
     if (noteData) {
@@ -129,22 +139,22 @@ const EditNote = () => {
           {/* 标签输入和显示区域 */}
           <div className="mb-4">
             <label className="block mb-2">标签</label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={inputTag}
-                onChange={handleInputTagChange}
-                placeholder="输入标签"
-                onPressEnter={handleAddTag}
-              />
-              <Button onClick={handleAddTag}>添加标签</Button>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {tags.map((tag) => (
-                <Tag key={tag} closable onClose={() => handleRemoveTag(tag)}>
-                  {tag}
-                </Tag>
-              ))}
-            </div>
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              placeholder="选择或创建标签"
+              value={tags} // 当前选中的/修改中的标签
+              onChange={(newTags) => setTags(newTags)}
+              options={allTags}
+              tokenSeparators={[',', ' ']}
+            />
+            {initialTags.length > 0 && (
+              <div
+                style={{ marginTop: '8px', fontSize: '12px', color: 'gray' }}
+              >
+                原始标签: {initialTags.join(', ')}
+              </div>
+            )}
           </div>
           {/* 提交按钮 */}
           <Form.Item>

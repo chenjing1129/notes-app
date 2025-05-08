@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Tag, message, Select } from 'antd'; // 引入 Ant Design 组件
 import { createNote } from '@/api/noteApi'; // 引入创建笔记的 API
 import { getCategories } from '@/api/categoryApi'; // 引入获取分类的 API
+import { getAllTags } from '@/api/tagApi'; // 引入获取所有标签的 API
 import { useStore } from '@/store/userStore'; // 引入全局状态管理
 import { useNavigate } from 'react-router-dom'; // 引入 React Router 的导航钩子
 import Navbar from '@/components/Navbar'; // 引入导航栏组件
@@ -9,22 +10,37 @@ import Navbar from '@/components/Navbar'; // 引入导航栏组件
 const CreateNote = () => {
   const navigate = useNavigate(); // 获取导航函数
   const { user } = useStore(); // 从全局状态中获取当前用户信息
-  const [tags, setTags] = useState([]); // 标签状态，用于存储用户添加的标签
+  const [tags, setTags] = useState([]); // 标签状态，用于存储用户选择或创建的标签
+  const [allTags, setAllTags] = useState([]); // 新增：存储所有从API获取的标签
   const [inputTag, setInputTag] = useState(''); // 输入框中的标签内容
   const [categories, setCategories] = useState([]); // 分类状态，用于存储从 API 获取的分类数据
 
-  // 使用 useEffect 钩子在组件加载时获取分类数据
+  // 使用 useEffect 钩子在组件加载时获取分类和所有标签数据
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getCategories(); // 调用 API 获取分类
-        setCategories(response.data); // 将获取到的分类数据存储到状态中
+        const [categoriesResponse, tagsResponse] = await Promise.all([
+          getCategories(),
+          getAllTags(),
+        ]);
+        setCategories(categoriesResponse.data);
+        // 假设 getAllTags 返回的数据结构是 { data: [{ id: '1', name: 'tag1' }, ...] }
+        // 或者直接是数组 [{ id: '1', name: 'tag1' }, ...]
+        // 我们需要的是标签名数组用于 Select options
+        setAllTags(
+          tagsResponse.data
+            ? tagsResponse.data.map((tag) => ({
+                label: tag.name,
+                value: tag.name,
+              }))
+            : tagsResponse.map((tag) => ({ label: tag.name, value: tag.name })),
+        );
       } catch (error) {
-        console.error('Failed to fetch categories:', error); // 打印错误信息
-        message.error('获取分类失败'); // 使用 Ant Design 的 message 组件显示错误提示
+        console.error('Failed to fetch initial data:', error);
+        message.error('获取初始数据失败');
       }
     };
-    fetchCategories();
+    fetchData();
   }, []);
 
   // 提交表单时的处理函数
@@ -112,23 +128,15 @@ const CreateNote = () => {
           {/* 标签输入和显示区域 */}
           <div className="mb-4">
             <label className="block mb-2">标签</label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={inputTag} // 绑定输入框值
-                onChange={handleInputTagChange} // 输入框内容变化时调用 handleInputTagChange 函数
-                placeholder="输入标签"
-                onPressEnter={handleAddTag} // 按下回车键时调用 handleAddTag 函数
-              />
-              {/* 点击按钮时调用 handleAddTag 函数 */}
-              <Button onClick={handleAddTag}>添加标签</Button>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {tags.map((tag) => (
-                <Tag key={tag} closable onClose={() => handleRemoveTag(tag)}>
-                  {tag}
-                </Tag>
-              ))}
-            </div>
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              placeholder="选择或创建标签"
+              value={tags}
+              onChange={(newTags) => setTags(newTags)}
+              options={allTags}
+              tokenSeparators={[',', ' ']}
+            />
           </div>
 
           {/* 提交按钮 */}
