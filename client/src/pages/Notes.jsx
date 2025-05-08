@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { List, Card, Tag, Button, Modal, message } from 'antd';
-import { getNotes, deleteNote } from '@/api/noteApi';
+import { getNotes, softDeleteNote } from '@/api/noteApi';
 import { useStore } from '@/store/userStore';
 import { useNavigate } from 'react-router-dom';
 import Navbar1 from '@/components/Navbar';
@@ -76,16 +76,20 @@ const Notes = () => {
         )}
       />
       <Modal
-        title="确认删除"
+        title="移入垃圾箱"
         open={modalVisible}
         onOk={async () => {
+          if (!user || !selectedNoteId) {
+            message.error('用户信息或笔记ID丢失');
+            return;
+          }
           try {
-            await deleteNote(selectedNoteId);
-            message.success('笔记删除成功');
+            await softDeleteNote(selectedNoteId, user.id);
+            message.success('笔记已移入垃圾箱');
             fetchNotes();
           } catch (error) {
-            console.error('Failed to delete note:', error);
-            message.error('删除笔记失败');
+            console.error('Failed to move note to trash:', error);
+            message.error('移入垃圾箱失败');
           } finally {
             setModalVisible(false);
             setSelectedNoteId(null);
@@ -96,7 +100,7 @@ const Notes = () => {
           setSelectedNoteId(null);
         }}
       >
-        <p>确定要删除这条笔记吗？此操作不可恢复。</p>
+        <p>确定要将这条笔记移入垃圾箱吗？你之后可以在垃圾箱中找到它。</p>
       </Modal>
     </>
   );

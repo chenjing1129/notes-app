@@ -9,6 +9,7 @@ import {
   AppstoreOutlined,
   SettingOutlined, // 新增设置图标
   InfoCircleOutlined, // 新增关于我们图标
+  DeleteOutlined, // 修改为 DeleteOutlined
 } from '@ant-design/icons';
 import { useStore } from '@/store/userStore';
 
@@ -36,6 +37,8 @@ const Navbar = () => {
         return ['categories'];
       case '/notes':
         return ['notes'];
+      case '/trash': // 新增垃圾箱页面选中逻辑
+        return ['trash'];
       case '/settings': // 新增设置页面选中逻辑
         return ['settings'];
       case '/about': // 新增关于我们页面选中逻辑
@@ -88,6 +91,16 @@ const Navbar = () => {
               </Space>
             ),
             onClick: () => navigate('/notes'),
+          },
+          {
+            key: 'trash', // 新增垃圾箱导航项
+            label: (
+              <Space size="middle">
+                <DeleteOutlined /> {/* 修改为 DeleteOutlined */}
+                <span>垃圾箱</span>
+              </Space>
+            ),
+            onClick: () => navigate('/trash'),
           },
           {
             key: 'settings', // 新增设置导航项
