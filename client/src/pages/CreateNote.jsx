@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Tag, message, Select } from 'antd'; // 引入 Ant Design 组件
+import ReactQuill from 'react-quill-new'; // 引入 ReactQuill
+import 'react-quill-new/dist/quill.snow.css'; // 引入 Quill 的 CSS
 import { createNote } from '@/api/noteApi'; // 引入创建笔记的 API
 import { getCategories } from '@/api/categoryApi'; // 引入获取分类的 API
 import { getAllTags } from '@/api/tagApi'; // 引入获取所有标签的 API
@@ -12,8 +14,8 @@ const CreateNote = () => {
   const { user } = useStore(); // 从全局状态中获取当前用户信息
   const [tags, setTags] = useState([]); // 标签状态，用于存储用户选择或创建的标签
   const [allTags, setAllTags] = useState([]); // 新增：存储所有从API获取的标签
-  const [inputTag, setInputTag] = useState(''); // 输入框中的标签内容
   const [categories, setCategories] = useState([]); // 分类状态，用于存储从 API 获取的分类数据
+  const [content, setContent] = useState(''); // 新增 state 用于存储富文本内容
 
   // 使用 useEffect 钩子在组件加载时获取分类和所有标签数据
   useEffect(() => {
@@ -45,40 +47,22 @@ const CreateNote = () => {
 
   // 提交表单时的处理函数
   const handleSubmit = async (values) => {
-    console.log(values);
+    // console.log(values); // values from Form.Item names
+    // console.log('Content from state:', content); // content from ReactQuill
     try {
       const noteData = {
-        ...values, // 展开表单提交的值
-        tags, // 添加标签到笔记数据中
-        userId: user.id, // 添加当前用户的 ID
+        ...values, // title, categoryId from Form
+        content: content, // 使用来自 ReactQuill 的 content state
+        tags,
+        userId: user.id,
       };
-      await createNote(noteData); // 调用 API 创建笔记
-      message.success('笔记创建成功'); // 显示成功提示
-      navigate('/notes'); // 导航到笔记列表页面
+      await createNote(noteData);
+      message.success('笔记创建成功');
+      navigate('/notes');
     } catch (error) {
-      console.error('Failed to create note:', error); // 打印错误信息
-      message.error('创建笔记失败'); // 显示失败提示
+      console.error('Failed to create note:', error);
+      message.error('创建笔记失败');
     }
-  };
-
-  // 输入框内容变化时的处理函数
-  const handleInputTagChange = (e) => {
-    setInputTag(e.target.value); // 更新输入框中的标签内容
-  };
-
-  // 添加标签的处理函数
-  const handleAddTag = () => {
-    // 如果输入框中有内容且标签未重复
-    if (inputTag && !tags.includes(inputTag)) {
-      setTags([...tags, inputTag]); // 将新标签添加到标签列表中
-      setInputTag(''); // 清空输入框
-    }
-  };
-
-  // 删除标签的处理函数
-  const handleRemoveTag = (removedTag) => {
-    const newTags = tags.filter((tag) => tag !== removedTag); // 过滤掉要删除的标签
-    setTags(newTags); // 更新标签列表
   };
 
   // 渲染组件
@@ -101,13 +85,33 @@ const CreateNote = () => {
             <Input placeholder="请输入笔记标题" />
           </Form.Item>
 
-          {/* 内容输入框 */}
+          {/* 内容输入框 - 替换为 ReactQuill */}
           <Form.Item
             label="内容"
-            name="content"
             rules={[{ required: true, message: '请输入笔记内容' }]}
           >
-            <Input.TextArea rows={6} placeholder="请输入笔记内容" />
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              placeholder="请输入笔记内容"
+              style={{ height: '200px', marginBottom: '40px' }} // 增加默认高度和底部间距
+              modules={{
+                toolbar: [
+                  [{ header: '1' }, { header: '2' }, { font: [] }],
+                  [{ size: [] }],
+                  ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                  [
+                    { list: 'ordered' },
+                    { list: 'bullet' },
+                    { indent: '-1' },
+                    { indent: '+1' },
+                  ],
+                  ['link', 'image', 'video'],
+                  ['clean'],
+                ],
+              }}
+            />
           </Form.Item>
 
           {/* 分类选择框 */}

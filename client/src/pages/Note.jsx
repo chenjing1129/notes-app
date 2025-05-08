@@ -36,14 +36,20 @@ const Note = () => {
   return (
     <>
       <Navbar />
-      <Card className="note-card" hoverable>
-        <Card.Meta title={note.title} description={note.content} />
+      <Card className="note-card m-4" hoverable>
+        <Card.Meta title={note.title} />
+        <div
+          className="note-content my-4 ql-editor"
+          dangerouslySetInnerHTML={{ __html: note.content }}
+        />
         <div className="my-4">
-          {note.tags.map((tag) => (
-            <Tag color="cyan" key={tag}>
-              {tag}
-            </Tag>
-          ))}
+          {note.tags &&
+            note.tags.length > 0 &&
+            note.tags.map((tag) => (
+              <Tag color="cyan" key={tag}>
+                {tag}
+              </Tag>
+            ))}
         </div>
       </Card>
     </>
